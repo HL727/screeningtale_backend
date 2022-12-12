@@ -1,0 +1,144 @@
+version: "3.6"
+services:
+  redis:
+    image: "redis:alpine"
+    command: redis-server
+    volumes:
+      - redis-data:/var/lib/redis
+      - redis.conf:/usr/loval/etc/redis/redis.conf
+    env_file:
+      - .env
+    environment:
+      - REDIS_REPLICATION_MODE=master
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == ${DB_HOSTNAME?Variable not set}
+
+  backend:
+    image: "${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}"
+    env_file:
+      - .env
+    environment:
+      - SERVICE_NAME=Backend
+    build:
+      context: ./backend
+      dockerfile: backend.dockerfile
+    networks:
+      - ${TRAEFIK_PUBLIC_NETWORK?Variable not set}
+      - default
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=${TRAEFIK_PUBLIC_NETWORK?Variable not set}
+        - traefik.constraint-label=${TRAEFIK_PUBLIC_TAG?Variable not set}
+        - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.rule=Host(`api.${DOMAIN?Variable not set}`) || Host(`www.api.${DOMAIN?Variable not set}`)
+        - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.entrypoints=http
+        - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.middlewares=https-redirect
+        - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.rule=Host(`api.${DOMAIN?Variable not set}`) || Host(`www.api.${DOMAIN?Variable not set}`)
+        - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.entrypoints=https
+        - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.middlewares=www-redirect
+        - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.tls=true
+        - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.tls.certresolver=le
+        - traefik.http.services.${STACK_NAME?Variable not set}-backend.loadbalancer.server.port=80
+
+  # db:
+  #   image: postgres:13
+  #   volumes:
+  #     - app-db-data:/var/lib/postgresql/data/pgdata
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - PGDATA=/var/lib/postgresql/data/pgdata
+  #   ports:
+  #     - "5432:5432"
+  #   deploy:
+  #     placement:
+  #       constraints:
+  #         - node.hostname == ${DB_HOSTNAME?Variable not set}
+  #         - node.labels.${STACK_NAME?Variable not set}.app-db-data == true
+
+  pgadmin:
+    image: dpage/pgadmin4:6.0
+    networks:
+      - ${TRAEFIK_PUBLIC_NETWORK?Variable not set}
+      - default
+    env_file:
+      - .env
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=${TRAEFIK_PUBLIC_NETWORK?Variable not set}
+        - traefik.constraint-label=${TRAEFIK_PUBLIC_TAG?Variable not set}
+        - traefik.http.routers.${STACK_NAME?Variable not set}-pgadmin-http.rule=Host(`pgadmin.${DOMAIN?Variable not set}`) || Host(`www.pgadmin.${DOMAIN?Variable not set}`)
+        - traefik.http.routers.${STACK_NAME?Variable not set}-pgadmin-http.entrypoints=http
+        - traefik.http.routers.${STACK_NAME?Variable not set}-pgadmin-http.middlewares=https-redirect
+        - traefik.http.routers.${STACK_NAME?Variable not set}-pgadmin-https.rule=Host(`pgadmin.${DOMAIN?Variable not set}`) || Host(`www.pgadmin.${DOMAIN?Variable not set}`)
+        - traefik.http.routers.${STACK_NAME?Variable not set}-pgadmin-https.entrypoints=https
+        - traefik.http.routers.${STACK_NAME?Variable not set}-pgadmin-https.middlewares=www-redirect
+        - traefik.http.routers.${STACK_NAME?Variable not set}-pgadmin-https.tls=true
+        - traefik.http.routers.${STACK_NAME?Variable not set}-pgadmin-https.tls.certresolver=le
+        - traefik.http.services.${STACK_NAME?Variable not set}-pgadmin.loadbalancer.server.port=80
+
+  flower:
+    image: mher/flower:0.9.7
+    networks:
+      - ${TRAEFIK_PUBLIC_NETWORK?Variable not set}
+      - default
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=redis://redis
+      - CELERY_RESULT_BACKEND=redis://redis
+    command:
+      - "--purge_offline_workers=60"
+      # - "--broker_api=http://guest:guest@queue:15672/api//"
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=${TRAEFIK_PUBLIC_NETWORK?Variable not set}
+        - traefik.constraint-label=${TRAEFIK_PUBLIC_TAG?Variable not set}
+        - traefik.http.routers.${STACK_NAME?Variable not set}-flower-http.rule=Host(`flower.${DOMAIN?Variable not set}`) || Host(`www.flower.${DOMAIN?Variable not set}`)
+        - traefik.http.routers.${STACK_NAME?Variable not set}-flower-http.entrypoints=http
+        - traefik.http.routers.${STACK_NAME?Variable not set}-flower-http.middlewares=https-redirect
+        - traefik.http.routers.${STACK_NAME?Variable not set}-flower-https.rule=Host(`flower.${DOMAIN?Variable not set}`) || Host(`www.flower.${DOMAIN?Variable not set}`)
+        - traefik.http.routers.${STACK_NAME?Variable not set}-flower-https.entrypoints=https
+        - traefik.http.routers.${STACK_NAME?Variable not set}-flower-https.middlewares=www-redirect
+        - traefik.http.routers.${STACK_NAME?Variable not set}-flower-https.tls=true
+        - traefik.http.routers.${STACK_NAME?Variable not set}-flower-https.tls.certresolver=le
+        - traefik.http.services.${STACK_NAME?Variable not set}-flower.loadbalancer.server.port=5555
+
+  celeryworker:
+    image: "${DOCKER_IMAGE_CELERYWORKER?Variable not set}:${TAG-latest}"
+    command: [ "bash", "/worker-start.sh" ]
+    env_file:
+      - .env
+    environment:
+      - SERVICE_NAME=Celeryworker
+      - SERVER_NAME=${DOMAIN?Variable not set}
+      - SERVER_HOST=https://${DOMAIN?Variable not set}
+    build:
+      context: ./backend
+      dockerfile: celery.dockerfile
+
+  celerybeat:
+    image: "${DOCKER_IMAGE_CELERYWORKER?Variable not set}:${TAG-latest}"
+    command: [ "bash", "/beat-start.sh" ]
+    env_file:
+      - .env
+    environment:
+      - SERVICE_NAME=Celerybeat
+    build:
+      context: ./backend
+      dockerfile: celery.dockerfile
+
+volumes:
+  app-db-data: null
+  redis-data: null
+  redis.conf:
+
+    null
+networks:
+  traefik-public:
+    # Allow setting it to false for testing
+    external: ${TRAEFIK_PUBLIC_NETWORK_IS_EXTERNAL-true}

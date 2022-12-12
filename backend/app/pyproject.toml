@@ -1,0 +1,55 @@
+[tool.poetry]
+name = "append-screeningtale"
+version = "0.1.0"
+description = "Screeningtale API using FastAPI"
+authors = ["Endre Krohn <endre-krohn@outlook.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+fastapi = "^0.67.0"
+requests = "^2.23.0"
+aioredis = "^2.0.0"
+uvicorn = "^0.14.0"
+pydantic = "^1.4"
+SQLAlchemy = "^1.4.22"
+pytest = "^6.2.4"
+pytest-asyncio = "^0.15.1"
+pandas = "1.4.2"
+PyMySQL = "^1.0.2"
+stripe = "^3.5.0"
+psycopg2-binary = "^2.9.1"
+alembic = "^1.7.3"
+tenacity = "^8.0.1"
+celery = {extras = ["redis"], version = "^5.1.2"}
+ta = {version = "^0.7.0", optional = true}
+pandas-ta = {version = "^0.3.14-beta.0", optional = true}
+yahoofinancials = {version = "^1.6", optional = true}
+simfin = {version = "^0.8.3", optional = true}
+yahooquery = {version = "^2.2.15", optional = true}
+TA-Lib = {version = "0.4.21", optional = true}
+redis = {version = "^3.5.3", optional = true}
+gunicorn = "^20.1.0"
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+mypy = "^0.941"
+python-multipart = "^0.0.5"
+aiohttp = "^3.8.1"
+numpy = "1.22.4"
+passlib = "^1.7.4"
+authlib = "^1.0.1"
+httpx="^0.23.0"
+itsdangerous = "^2.1.2"
+sniffio="^1.2.0"
+wheel = "^0.37.1"
+
+[tool.poetry.dev-dependencies]
+black = "^21.7b0"
+flake8 = "^3.9.2"
+isort = "^5.9.3"
+locust = "^2.9.0"
+
+[tool.poetry.extras]
+make_dataset = ["ta", "TA-Lib", "pandas-ta", "yahoofinancials", "simfin", "yahooquery"]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,66 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.234.0/containers/ubuntu
+{
+	"name": "Ubuntu",
+	"build": {
+		"dockerfile": "Dockerfile",
+		// Update 'VARIANT' to pick an Ubuntu version: jammy / ubuntu-22.04, focal / ubuntu-20.04, bionic /ubuntu-18.04
+		// Use ubuntu-22.04 or ubuntu-18.04 on local arm64/Apple Silicon.
+		"args": {
+			"VARIANT": "ubuntu-20.04"
+		}
+	},
+	"workspaceFolder": "${localWorkspaceFolder}",
+	"workspaceMount": "source=${localWorkspaceFolder},target=${localWorkspaceFolder},type=bind",
+	// Set *default* container specific settinvcgs.json values on container create.
+	"settings": {
+		"python.pythonPath": "${workspaceFolder}/backend/app/.venv/bin/python",
+		"python.defaultInterpreterPath": "${workspaceFolder}/backend/app/.venv/bin/python",
+		"python.formatting.provider": "black",
+		"editor.formatOnSave": true,
+		"python.formatting.blackPath": "${workspaceFolder}/backend/app/.venv/bin/black",
+		"python.analysis.typeCheckingMode": "basic",
+		"python.linting.enabled": true,
+		"python.linting.flake8Enabled": true,
+		"python.linting.flake8Path": "${workspaceFolder}/backend/app/.venv/bin/flake8",
+		"python.linting.flake8Args": [
+			// E501: Line too long.
+			// W503: Line break occurred before a binary operator. Disabled as it will soon be considered best practice to actually do it
+			// E203: Whispace before :. Disabled as it is not PEP8 compliant, and black will auto-format to whitespace before : on slices
+			"--ignore=E501,W503,E203"
+		],
+		"python.linting.mypyEnabled": true,
+		"python.linting.mypyPath": "${workspaceFolder}/backend/app/.venv/bin/mypy",
+		"python.poetryPath": "/usr/local/bin/poetry",
+		"python.sortImports.args": [
+			"--profile",
+			"black"
+		],
+		"python.testing.pytestEnabled": true,
+		"python.terminal.activateEnvironment": false,
+		"files.exclude": {
+			"**/node_modules/**": true,
+			"**/.next/**": true,
+			"docker-stack*.yml": true,
+			"**/tsconfig.tsbuildinfo": true,
+			"**/.pytest_cache/**": true,
+			"**/.mypy_cache/**": true,
+			"**/.venv/**": true
+		}
+	},
+	// Add the IDs of extensions you want installed when the container is created.
+	"extensions": [
+		"ms-python.python",
+		"ms-python.vscode-pylance",
+		"eamodio.gitlens"
+	],
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
+	"remoteUser": "vscode",
+	"features": {
+		"docker-from-docker": "20.10",
+	},
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "sudo bash ./.devcontainer/post-create-command.sh"
+}

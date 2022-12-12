@@ -1,0 +1,4 @@
+.env
+__pycache__
+docker-stack.yml
+.mypy_cache
